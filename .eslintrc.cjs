@@ -5,6 +5,8 @@
  */
 
 /** @type {import('eslint').Linter.Config} */
+import importPlugin from "eslint-plugin-import";
+
 module.exports = {
   root: true,
   parserOptions: {
@@ -28,7 +30,7 @@ module.exports = {
     // React
     {
       files: ["**/*.{js,jsx,ts,tsx}"],
-      plugins: ["react", "jsx-a11y"],
+      plugins: ["react", "jsx-a11y", importPlugin],
       extends: [
         "plugin:react/recommended",
         "plugin:react/jsx-runtime",
@@ -45,7 +47,9 @@ module.exports = {
           { name: "NavLink", linkAttribute: "to" },
         ],
         "import/resolver": {
-          typescript: {},
+          typescript: {
+            project: "./tsconfig.json",
+          },
         },
       },
       rules: {
@@ -91,6 +95,6 @@ module.exports = {
     },
   ],
   globals: {
-    shopify: "readonly"
+    shopify: "readonly",
   },
 };

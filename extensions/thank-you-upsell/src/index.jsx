@@ -15,11 +15,11 @@ import {
   extend,
 } from "@shopify/post-purchase-ui-extensions";
 
-const APP_URL = "https://changes-lotus-outdoors-ntsc.trycloudflare.com";
+const APP_URL = "https://shareware-equipped-quantity-nyc.trycloudflare.com";
 extend(
   "Checkout::PostPurchase::ShouldRender",
   async ({ storage, inputData }) => {
-    const postPurchaseOffer = await fetch(`${APP_URL}/api/offers`, {
+    const postPurchaseOffer = await fetch(`${APP_URL}/api/offer`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${inputData.token}`,
@@ -58,7 +58,7 @@ export function App() {
   console.log("__test", JSON.stringify(offer));
 
   async function acceptOffer(apiToken, referenceId, purchaseOptionId) {
-    const token = await fetch(`${APP_URL}/api/sign-changeset`, {
+    const token = await fetch(`${APP_URL}/api/offer/sign-changeset`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiToken}`,
