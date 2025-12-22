@@ -1,34 +1,46 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "./generated"
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
   id            String    @id
   shop          String
   state         String
-  isOnline      Boolean   @default(false)
+  isOnline      Boolean   @default(false) @map("is_online")
   scope         String?
   expires       DateTime?
-  accessToken   String
-  userId        BigInt?
-  firstName     String?
-  lastName      String?
+  accessToken   String @map("access_token")
+  userId        BigInt? @map("user_id")
+  firstName     String? @map("first_name")
+  lastName      String? @map("last_name")
   email         String?
-  accountOwner  Boolean   @default(false)
+  accountOwner  Boolean   @default(false) @map("account_owner")
   locale        String?
   collaborator  Boolean?  @default(false)
-  emailVerified Boolean?  @default(false)
-  refreshToken        String?
-  refreshTokenExpires DateTime?
+  emailVerified Boolean?  @default(false) @map("email_verified")
+  refreshToken        String? @map("refresh_token")
+  refreshTokenExpires DateTime? @map("refresh_token_expires")
+
+  @@map("sessions")
+}
+
+enum UpsellMode {
+  Metafield
+  SelectedCollection
+}
+
+model ProductUpsell {
+  id String @id
+  productId String @map("product_id")
+  upsellProductId String @map("upsell_product_id")
+  mode UpsellMode
+  collectionId String? @map("collection_id")
+
+  @@map("product_upsells")
 }
