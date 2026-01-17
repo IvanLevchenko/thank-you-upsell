@@ -1,8 +1,10 @@
+import { CallbackEvent } from "@shopify/polaris-types";
+
 type ConfirmModalProps = {
   heading: string;
   paragraph: string;
   modalId: string;
-  onConfirm: () => void;
+  onConfirm: (data: CallbackEvent<"s-button">) => void;
 };
 
 export const ConfirmModal = ({

@@ -10,6 +10,5 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { cors } = await authenticate.public.checkout(request);
   const { referenceId } = await request.json();
 
-  console.log("__test", referenceId);
   return cors(Response.json({}));
 };

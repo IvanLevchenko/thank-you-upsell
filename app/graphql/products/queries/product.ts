@@ -1,9 +1,9 @@
-export const product = `
+export const product = (namespace: string, key: string) => `
   query Product($id: ID!) {
     product(id: $id) {
       id
       title
-      metafield(namespace: "custom", key: "test") {
+      metafield(namespace: "${namespace}", key: "${key}") {
         value
       }
       collections(first: 20) {
@@ -24,6 +24,18 @@ export const product = `
             }
           }
         }
+      }
+    }
+  }
+`;
+
+export const productWithMetafield = (namespace: string, key: string) => `
+  query ProductWithMetafield($id: ID!) {
+    product(id: $id) {
+      id
+      title
+      metafield(namespace: "${namespace}", key: "${key}") {
+        value
       }
     }
   }

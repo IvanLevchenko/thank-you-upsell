@@ -3,7 +3,12 @@ import {
   useLoaderData,
   useNavigate,
   useParams,
+  useRevalidator,
 } from "react-router";
+import { useEffect, useState } from "react";
+import { CallbackEvent } from "@shopify/polaris-types";
+import { useAppBridge } from "@shopify/app-bridge-react";
+
 import { getProduct } from "@/queries/product/get-product";
 import { fromNumberToShopifyId } from "@/helpers/from-number-to-shopify-id";
 import { getShop } from "@/queries/shop/get-shop";
@@ -14,11 +19,16 @@ import { getProductUrl } from "@/helpers/get-product-url";
 import { MetafieldList } from "@/components/product/metafield-list";
 import { CollectionSelector } from "@/components/product/collection-selector";
 import { getCollections } from "@/queries/collection/get-collections";
-import { useState } from "react";
-import { CallbackEvent } from "@shopify/polaris-types";
 import { ConfirmModal } from "@/components/general/confirm-modal";
+import { authenticate } from "@/shopify.server";
+import { Api } from "@/api";
+import {
+  UpsellVariantsMetafield,
+  REMOVE_VARIANT_FROM_UPSELL_MODAL_ID,
+} from "@/utils/constants";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
+  await authenticate.admin(request);
   const { id } = params;
 
   if (!id) {
@@ -26,10 +36,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   }
 
   const product = await getProduct(request, fromNumberToShopifyId(id));
-  const metafieldVariants = await getVariantsFromMetafield(
-    request,
-    product.metafield.value,
-  );
+  const metafieldVariants = product.metafield?.value
+    ? await getVariantsFromMetafield(request, product.metafield.value)
+    : [];
   const collections = await getCollections(request);
   const shop = await getShop(request);
 
@@ -54,18 +63,21 @@ const settingDetails = Object.freeze({
 });
 
 function Product() {
+  const appBridge = useAppBridge();
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
   const { id } = useParams();
   const { product, metafieldVariants, collections, shop } =
     useLoaderData<typeof loader>();
+  console.log("metafieldVariants", metafieldVariants);
 
   const [mode, setMode] = useState<UpsellMode>(UpsellMode.Metafield);
+  const [variantToRemove, setVariantToRemove] = useState<string | null>(null);
 
   const productUrl = getProductUrl(
     shop?.myshopifyDomain?.split?.(".")?.[0] || "",
     id || "",
   );
-  const REMOVE_VARIANT_FROM_UPSELL_MODAL_ID = "remove-variant-from-upsell";
 
   const handleBack = () => {
     navigate("/app");
@@ -83,13 +95,43 @@ function Product() {
     setMode(event.currentTarget.values[0] as UpsellMode);
   };
 
+  const handleConfirmRemoveVariant = async () => {
+    if (!id || !metafieldVariants) {
+      return;
+    }
+
+    const variants = metafieldVariants.filter((v) => v.id !== variantToRemove);
+    const variantsIds = variants.map((v) => v.id);
+
+    console.log("variants", variants);
+    await Api.metafieldsSet({
+      ownerId: fromNumberToShopifyId(id),
+      type: "list.variant_reference",
+      namespace: UpsellVariantsMetafield.namespace,
+      key: UpsellVariantsMetafield.key,
+      value: JSON.stringify(variantsIds),
+    });
+
+    appBridge.toast.show("Variant removed from upsell");
+    revalidator.revalidate();
+  };
+
+  const handleAddVariants = () => {
+    revalidator.revalidate();
+  };
+
+  const handleSelectVariantToRemove = (variantId: string) => {
+    setVariantToRemove(variantId);
+    revalidator.revalidate();
+  };
+
   return (
     <s-page heading={product?.title}>
       <ConfirmModal
         heading="Remove variant from upsell"
         paragraph="Are you sure you want to remove this variant from the upsell?"
         modalId={REMOVE_VARIANT_FROM_UPSELL_MODAL_ID}
-        onConfirm={() => {}}
+        onConfirm={handleConfirmRemoveVariant}
       />
       <s-stack justifyContent="space-between" direction="inline">
         <s-button variant="primary" onClick={handleBack}>
@@ -161,9 +203,9 @@ function Product() {
             <MetafieldList
               variants={metafieldVariants}
               myShopifyDomain={shop?.myshopifyDomain || ""}
-              removeVariantFromUpsellModalId={
-                REMOVE_VARIANT_FROM_UPSELL_MODAL_ID
-              }
+              onAddVariants={handleAddVariants}
+              onSelectVariantToRemove={handleSelectVariantToRemove}
+              productId={id || ""}
             />
           </s-stack>
         </s-grid>
@@ -171,9 +213,5 @@ function Product() {
     </s-page>
   );
 }
-
-const getSelectedCollection = () => {
-  return <></>;
-};
 
 export default Product;
