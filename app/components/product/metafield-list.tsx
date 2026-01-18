@@ -101,7 +101,6 @@ export const MetafieldList = ({
   };
 
   useEffect(() => {
-    console.log("variants changed", variants);
     setVariantsList(variants || []);
   }, [variants]);
 

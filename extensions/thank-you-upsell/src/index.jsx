@@ -28,9 +28,7 @@ extend(
       body: JSON.stringify({
         referenceId: inputData.initialPurchase.referenceId,
       }),
-    })
-      .then((response) => response.json())
-      .catch((e) => console.log("__test", e));
+    }).then((response) => response.json());
 
     await storage.update({ ...inputData, ...postPurchaseOffer });
 
@@ -55,7 +53,6 @@ export function App() {
   const input = useExtensionInput();
   const { applyChangeset, done, storage } = input;
   const offer = storage.initialData.offer;
-  console.log("__test", JSON.stringify(offer));
 
   async function acceptOffer(apiToken, referenceId, purchaseOptionId) {
     const token = await fetch(`${APP_URL}/api/offer/sign-changeset`, {

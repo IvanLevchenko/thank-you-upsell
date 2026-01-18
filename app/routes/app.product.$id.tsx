@@ -69,7 +69,6 @@ function Product() {
   const { id } = useParams();
   const { product, metafieldVariants, collections, shop } =
     useLoaderData<typeof loader>();
-  console.log("metafieldVariants", metafieldVariants);
 
   const [mode, setMode] = useState<UpsellMode>(UpsellMode.Metafield);
   const [variantToRemove, setVariantToRemove] = useState<string | null>(null);
@@ -103,7 +102,6 @@ function Product() {
     const variants = metafieldVariants.filter((v) => v.id !== variantToRemove);
     const variantsIds = variants.map((v) => v.id);
 
-    console.log("variants", variants);
     await Api.metafieldsSet({
       ownerId: fromNumberToShopifyId(id),
       type: "list.variant_reference",
