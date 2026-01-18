@@ -20,6 +20,7 @@ type MetafieldListProps = {
   onAddVariants: () => void;
   onSelectVariantToRemove: (variantId: string) => void;
   productId: string;
+  disabled: boolean;
 };
 
 export const MetafieldList = ({
@@ -28,6 +29,7 @@ export const MetafieldList = ({
   onAddVariants,
   onSelectVariantToRemove,
   productId,
+  disabled,
 }: MetafieldListProps) => {
   const appBridge = useAppBridge();
   const [variantsList, setVariantsList] = useState<
@@ -116,6 +118,7 @@ export const MetafieldList = ({
             icon="plus"
             variant="secondary"
             interestFor="add-variant-tooltip"
+            disabled={disabled}
             onClick={handleOpenSearch}
           ></s-button>
           <s-tooltip id="add-variant-tooltip">
@@ -143,6 +146,7 @@ export const MetafieldList = ({
                       icon="delete"
                       variant="secondary"
                       interestFor="delete-variant-tooltip"
+                      disabled={disabled}
                       onClick={() =>
                         onSelectVariantToRemove(
                           fromNumberToShopifyId(
@@ -177,8 +181,11 @@ export const MetafieldList = ({
                 <s-table-cell>
                   <s-stack direction="inline" gap="small" alignItems="center">
                     {/* <s-switch defaultChecked></s-switch> */}
-                    <s-badge color="base" tone="success">
-                      Active
+                    <s-badge
+                      color="base"
+                      tone={disabled ? "warning" : "success"}
+                    >
+                      {disabled ? "Inactive" : "Active"}
                     </s-badge>
                   </s-stack>
                 </s-table-cell>

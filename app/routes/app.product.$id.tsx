@@ -200,6 +200,7 @@ function Product() {
 
             <MetafieldList
               variants={metafieldVariants}
+              disabled={mode !== UpsellMode.Metafield}
               myShopifyDomain={shop?.myshopifyDomain || ""}
               onAddVariants={handleAddVariants}
               onSelectVariantToRemove={handleSelectVariantToRemove}
