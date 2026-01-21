@@ -5,12 +5,12 @@ import {
   useParams,
   useRevalidator,
 } from "react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CallbackEvent } from "@shopify/polaris-types";
 import { useAppBridge } from "@shopify/app-bridge-react";
 
 import { getProduct } from "@/queries/product/get-product";
-import { fromNumberToShopifyId } from "@/helpers/from-number-to-shopify-id";
+import { IdConverter } from "@/helpers/id-converter";
 import { getShop } from "@/queries/shop/get-shop";
 import { UpsellMode } from "@/enums/upsell-mode";
 import { getVariantsFromMetafield } from "@/queries/variant/get-variants-from-metafield";
@@ -35,7 +35,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     return { product: null };
   }
 
-  const product = await getProduct(request, fromNumberToShopifyId(id));
+  const product = await getProduct(
+    request,
+    IdConverter.fromNumberToShopifyId(id),
+  );
   const metafieldVariants = product.metafield?.value
     ? await getVariantsFromMetafield(request, product.metafield.value)
     : [];
@@ -103,7 +106,7 @@ function Product() {
     const variantsIds = variants.map((v) => v.id);
 
     await Api.metafieldsSet({
-      ownerId: fromNumberToShopifyId(id),
+      ownerId: IdConverter.fromNumberToShopifyId(id),
       type: "list.variant_reference",
       namespace: UpsellVariantsMetafield.namespace,
       key: UpsellVariantsMetafield.key,

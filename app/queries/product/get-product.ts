@@ -4,7 +4,7 @@ import {
   productWithMetafield,
 } from "@/graphql/products/queries/product";
 import { Product } from "@/types/product";
-import { fromNumberToShopifyId } from "@/helpers/from-number-to-shopify-id";
+import { IdConverter } from "@/helpers/id-converter";
 import { UpsellVariantsMetafield } from "@/utils/constants";
 
 export const getProduct = async (
@@ -31,7 +31,7 @@ export const getProductWithMetafield = async (
   const { admin } = await authenticate.admin(request);
   const { data } = await (
     await admin.graphql(productWithMetafield(namespace, key), {
-      variables: { id: fromNumberToShopifyId(id) },
+      variables: { id: IdConverter.fromNumberToShopifyId(id) },
     })
   ).json();
 

@@ -1,6 +1,6 @@
 import { ActionFunctionArgs } from "react-router";
 
-import { fromNumberToShopifyId } from "@/helpers/from-number-to-shopify-id";
+import { IdConverter } from "@/helpers/id-converter";
 import {
   metafieldSet,
   MetafieldSetDto,
@@ -13,7 +13,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { ownerId, namespace, key, value, type } = body as MetafieldSetDto;
 
   return metafieldSet(request, {
-    ownerId,
+    ownerId: IdConverter.fromNumberToShopifyId(ownerId),
     namespace,
     key,
     value,

@@ -5,10 +5,7 @@ import { useEffect, useState } from "react";
 import { getProductUrl } from "@/helpers/get-product-url";
 import { MetafieldSetDto } from "@/mutations/metafield/set-metafield";
 import { ProductVariant } from "@/types/product-variant";
-import {
-  fromNumberToShopifyId,
-  ShopifyEntity,
-} from "@/helpers/from-number-to-shopify-id";
+import { IdConverter, ShopifyEntity } from "@/helpers/id-converter";
 import {
   UpsellVariantsMetafield,
   REMOVE_VARIANT_FROM_UPSELL_MODAL_ID,
@@ -42,7 +39,7 @@ export const MetafieldList = ({
     const variantIds = variants.map((v) => v.id);
 
     const dto: MetafieldSetDto = {
-      ownerId: fromNumberToShopifyId(productId),
+      ownerId: IdConverter.fromNumberToShopifyId(productId),
       type: "list.variant_reference",
       namespace: UpsellVariantsMetafield.namespace,
       key: UpsellVariantsMetafield.key,
@@ -149,7 +146,7 @@ export const MetafieldList = ({
                       disabled={disabled}
                       onClick={() =>
                         onSelectVariantToRemove(
-                          fromNumberToShopifyId(
+                          IdConverter.fromNumberToShopifyId(
                             variant.id,
                             ShopifyEntity.ProductVariant,
                           ),
