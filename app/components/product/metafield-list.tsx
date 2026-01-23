@@ -10,6 +10,7 @@ import {
   UpsellVariantsMetafield,
   REMOVE_VARIANT_FROM_UPSELL_MODAL_ID,
 } from "@/utils/constants";
+import { Api } from "@/api";
 
 type MetafieldListProps = {
   variants?: ProductVariant[];
@@ -46,16 +47,14 @@ export const MetafieldList = ({
       value: JSON.stringify(variantIds),
     };
     try {
-      const response = await fetch(`/api/metafields-set`, {
-        method: "POST",
-        body: JSON.stringify(dto),
-      });
+      const response = await Api.metafieldsSet(dto);
 
-      if (response.ok) {
+      if (response.success) {
         appBridge.toast.show("Metafields set successfully");
 
-        // setVariantsList(variants);
         onAddVariants();
+      } else {
+        appBridge.toast.show(response.error || "Failed to set metafields");
       }
     } catch (error) {
       console.error(error);
@@ -83,20 +82,22 @@ export const MetafieldList = ({
       }
     });
 
-    const result =
-      (await appBridge.resourcePicker({
-        type: "variant",
-        multiple: true,
-        selectionIds: Object.entries(variantsProductsMap).map(
-          ([productId, variantIds]) => ({
-            id: productId,
-            variants: variantIds.map((id) => ({ id })),
-          }),
-        ),
-      })) || [];
-    const variantsToAdd = result.filter((variant) => variant.id);
+    const result = await appBridge.resourcePicker({
+      type: "variant",
+      multiple: true,
+      selectionIds: Object.entries(variantsProductsMap).map(
+        ([productId, variantIds]) => ({
+          id: productId,
+          variants: variantIds.map((id) => ({ id })),
+        }),
+      ),
+    });
 
-    setMatafields(variantsToAdd);
+    if (result) {
+      const variantsToAdd = result.filter((variant) => variant.id);
+
+      setMatafields(variantsToAdd);
+    }
   };
 
   useEffect(() => {
