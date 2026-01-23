@@ -63,9 +63,7 @@ export const MetafieldList = ({
 
   const handleOpenSearch = async () => {
     const variantIdsFromMetafield = (await (
-      await fetch(
-        `/api/products/variants-from-product-metafield?id=${productId}`,
-      )
+      await fetch(`/api/products/${productId}/upsell-variants`)
     ).json()) as string[];
     const variants = variantIdsFromMetafield.length
       ? ((await (
