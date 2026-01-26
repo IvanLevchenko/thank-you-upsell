@@ -52,8 +52,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
-  console.log("products ==>>>", products);
-
   let variants: ProductVariant[] = [];
 
   try {
@@ -76,8 +74,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       Response.json({ error: "Failed to get variants" }, { status: 500 }),
     );
   }
-
-  console.log("variants ==>>>", variants);
 
   try {
     const offers: Offers = variants.map((variant) => {

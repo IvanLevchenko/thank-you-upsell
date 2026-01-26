@@ -32,9 +32,10 @@ model Session {
 model ProductUpsell {
   id              String     @id
   productId       String     @map("product_id")
-  upsellProductId String     @map("upsell_product_id")
-  mode            UpsellMode
+  mode            UpsellMode @default(Metafield)
   collectionId    String?    @map("collection_id")
+  enabled         Boolean    @default(true)
+  offers          Json[]
 
   @@map("product_upsells")
 }
