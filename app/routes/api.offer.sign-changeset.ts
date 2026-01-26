@@ -1,3 +1,5 @@
+import jwt from "jsonwebtoken";
+
 import { authenticate } from "../shopify.server";
 import { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 
@@ -8,7 +10,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { cors } = await authenticate.public.checkout(request);
-  const { referenceId } = await request.json();
 
-  return cors(Response.json({}));
+  const { changes, referenceId } = await request.json();
+
+  const payload = {
+    iss: process.env.SHOPIFY_API_KEY,
+    jti: crypto.randomUUID(),
+    iat: Date.now(),
+    sub: referenceId,
+    changes,
+  };
+
+  const token = jwt.sign(payload, process.env.SHOPIFY_API_SECRET || "");
+  return cors(new Response(JSON.stringify({ token })));
 };

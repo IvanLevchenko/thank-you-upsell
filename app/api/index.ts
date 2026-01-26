@@ -1,5 +1,6 @@
 import { MetafieldSetDto } from "@/mutations/metafield/set-metafield";
 import { DefaultResponse } from "@/types/default-response";
+import { ProductVariant } from "@/types/product-variant";
 
 export class Api {
   static async metafieldsSet<T = any>(
@@ -21,6 +22,30 @@ export class Api {
       return {
         success: false,
         error: "Failed to set metafields",
+        details: error,
+      };
+    }
+  }
+
+  static async getProductUpsellVariants(
+    request: Request,
+    productId: string,
+  ): Promise<DefaultResponse<ProductVariant[]>> {
+    const url = new URL(
+      `/api/products/${productId}/upsell-variants`,
+      request.url,
+    );
+    try {
+      const response = await fetch(url.toString());
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: "Failed to get product upsell variants",
         details: error,
       };
     }

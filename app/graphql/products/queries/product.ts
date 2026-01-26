@@ -1,3 +1,5 @@
+import { UpsellVariantsMetafield } from "@/utils/constants";
+
 export const product = (namespace: string, key: string) => `
   query Product($id: ID!) {
     product(id: $id) {
@@ -29,7 +31,10 @@ export const product = (namespace: string, key: string) => `
   }
 `;
 
-export const productWithMetafield = (namespace: string, key: string) => `
+export const productWithMetafield = (
+  namespace: string = UpsellVariantsMetafield.namespace,
+  key: string = UpsellVariantsMetafield.key,
+) => `
   query ProductWithMetafield($id: ID!) {
     product(id: $id) {
       id

@@ -15,22 +15,35 @@ import {
   extend,
 } from "@shopify/post-purchase-ui-extensions";
 
-const APP_URL = "https://shareware-equipped-quantity-nyc.trycloudflare.com";
+const APP_URL = "https://knowledge-disabled-profits-clarity.trycloudflare.com";
+
 extend(
   "Checkout::PostPurchase::ShouldRender",
   async ({ storage, inputData }) => {
-    const postPurchaseOffer = await fetch(`${APP_URL}/api/offer`, {
+    const productIds = inputData.initialPurchase.lineItems.map(
+      (lineItem) => lineItem.product.id,
+    );
+    const referenceId = inputData.initialPurchase.referenceId;
+
+    const offers = await fetch(`${APP_URL}/api/offer`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${inputData.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        referenceId: inputData.initialPurchase.referenceId,
+        productIds,
+        referenceId,
       }),
     }).then((response) => response.json());
 
-    await storage.update({ ...inputData, ...postPurchaseOffer });
+    if (offers.success) {
+      await storage.update({ ...inputData, ...offers });
+    } else {
+      return {
+        render: false,
+      };
+    }
 
     return {
       render: true,
@@ -52,9 +65,10 @@ render("Checkout::PostPurchase::Render", (props) => (
 export function App() {
   const input = useExtensionInput();
   const { applyChangeset, done, storage } = input;
-  const offer = storage.initialData.offer;
 
-  async function acceptOffer(apiToken, referenceId, purchaseOptionId) {
+  const offers = storage.initialData.data;
+
+  async function acceptOffer(apiToken, referenceId, changes) {
     const token = await fetch(`${APP_URL}/api/offer/sign-changeset`, {
       method: "POST",
       headers: {
@@ -62,8 +76,8 @@ export function App() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        referenceId: referenceId,
-        changes: purchaseOptionId,
+        referenceId,
+        changes,
       }),
     })
       .then((response) => response.json())
@@ -80,15 +94,13 @@ export function App() {
       <CalloutBanner title="It's not late to add this product to your order!"></CalloutBanner>
       <Layout
         maxInlineSize={0.95}
-        media={[
-          { viewportSize: "small", sizes: [1, 30, 1] },
-          { viewportSize: "medium", sizes: [300, 30, 0.5] },
-          { viewportSize: "large", sizes: [400, 30, 0.33] },
-        ]}
+
+        // media={[
+        //   { viewportSize: "small", sizes: [1, 30, 1] },
+        //   { viewportSize: "medium", sizes: [300, 30, 0.5] },
+        //   { viewportSize: "large", sizes: [400, 30, 0.33] },
+        // ]}
       >
-        <View>
-          <Image source={offer.productImageURL} />
-        </View>
         <View />
         <BlockStack spacing="xloose">
           <TextContainer>
@@ -98,7 +110,29 @@ export function App() {
               based on a previous purchase, and much more.
             </TextBlock>
           </TextContainer>
-          <Button
+          {offers.map((offer) => {
+            return (
+              <BlockStack>
+                <Image source={offer.productImageURL} />
+                <TextBlock>{offer.productTitle}</TextBlock>
+                <TextBlock>{offer.productDescription}</TextBlock>
+                <TextBlock>{offer.originalPrice}</TextBlock>
+                <TextBlock>{offer.discountedPrice}</TextBlock>
+                <Button
+                  onPress={() =>
+                    acceptOffer(
+                      storage.initialData.token,
+                      storage.initialData.initialPurchase.referenceId,
+                      offer.changes,
+                    )
+                  }
+                >
+                  Accept Offer
+                </Button>
+              </BlockStack>
+            );
+          })}
+          {/* <Button
             submit
             onPress={() =>
               acceptOffer(
@@ -109,7 +143,7 @@ export function App() {
             }
           >
             Primary button
-          </Button>
+          </Button> */}
         </BlockStack>
       </Layout>
     </BlockStack>

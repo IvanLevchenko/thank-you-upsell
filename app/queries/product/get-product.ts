@@ -6,6 +6,7 @@ import {
 import { Product } from "@/types/product";
 import { IdConverter } from "@/helpers/id-converter";
 import { UpsellVariantsMetafield } from "@/utils/constants";
+import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 export const getProduct = async (
   request: Request,
@@ -23,14 +24,13 @@ export const getProduct = async (
 };
 
 export const getProductWithMetafield = async (
-  request: Request,
+  graphql: AdminApiContext["graphql"],
   id: string,
-  namespace: string,
-  key: string,
+  namespace: string = UpsellVariantsMetafield.namespace,
+  key: string = UpsellVariantsMetafield.key,
 ): Promise<Product> => {
-  const { admin } = await authenticate.admin(request);
   const { data } = await (
-    await admin.graphql(productWithMetafield(namespace, key), {
+    await graphql(productWithMetafield(namespace, key), {
       variables: { id: IdConverter.fromNumberToShopifyId(id) },
     })
   ).json();

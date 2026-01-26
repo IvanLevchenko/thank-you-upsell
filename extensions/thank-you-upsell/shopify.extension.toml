@@ -2,10 +2,7 @@ name = "Thank You Upsell"
 type = "checkout_post_purchase"
 uid = "668606a9-da05-e73e-6c99-cf8e980b59ed8c1dcfb8"
 
-# [[metafields]]
-# namespace = "my-namespace"
-# key = "my-key"
+[[metafields]]
+namespace = "custom"
+key = "test"
 
-# [[metafields]]
-# namespace = "my-namespace"
-# key = "my-key-2"

@@ -5,12 +5,12 @@ import { LoaderFunctionArgs } from "react-router";
 
 // Returns a list of variant ids from the product metafield
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
   const id = new URL(request.url).pathname.split("/")[1];
 
   if (id) {
     const product = await getProductWithMetafield(
-      request,
+      admin.graphql,
       id,
       UpsellVariantsMetafield.namespace,
       UpsellVariantsMetafield.key,

@@ -6,6 +6,7 @@ export const productVariant = `
       product {
         id
       }
+      price
       media(first: 1) {
         edges {
           node {

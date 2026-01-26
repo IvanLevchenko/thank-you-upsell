@@ -4,6 +4,7 @@ export type ProductVariant = {
   product: {
     id: string;
   };
+  price: string;
   media: {
     edges: {
       node: {
