@@ -15,7 +15,7 @@ import {
   extend,
 } from "@shopify/post-purchase-ui-extensions";
 
-const APP_URL = "https://knowledge-disabled-profits-clarity.trycloudflare.com";
+const APP_URL = "https://olive-filename-range-llp.trycloudflare.com";
 
 extend(
   "Checkout::PostPurchase::ShouldRender",

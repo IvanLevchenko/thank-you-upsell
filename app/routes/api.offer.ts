@@ -5,7 +5,7 @@ import { Offers } from "@/types/offer";
 import { ProductVariant } from "@/types/product-variant";
 import { IdConverter } from "@/helpers/id-converter";
 import prisma from "@/db.server";
-import { graphql } from "@/helpers/graphql";
+import { graphql } from "@/utils/graphql";
 import { productWithMetafield } from "@/graphql/products/queries/product";
 import { SessionToken } from "@/types/session-token";
 import { Product } from "@/types/product";

@@ -1,6 +1,6 @@
 export const products = `
   query Products {
-    products(first: 50) {
+    products(first: 100) {
       edges {
         node {
           id
