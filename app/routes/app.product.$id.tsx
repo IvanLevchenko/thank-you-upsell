@@ -5,14 +5,14 @@ import {
   useParams,
   useRevalidator,
 } from "react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CallbackEvent } from "@shopify/polaris-types";
-import { useAppBridge } from "@shopify/app-bridge-react";
+import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
+import { ProductUpsell, UpsellMode } from "@prisma/client";
 
 import { getProduct } from "@/queries/product/get-product";
 import { IdConverter } from "@/helpers/id-converter";
 import { getShop } from "@/queries/shop/get-shop";
-import { UpsellMode } from "@/enums/upsell-mode";
 import { getVariantsFromMetafield } from "@/queries/variant/get-variants-from-metafield";
 import type { Product } from "@/types/product";
 import { getProductUrl } from "@/helpers/get-product-url";
@@ -26,6 +26,9 @@ import {
   UpsellVariantsMetafield,
   REMOVE_VARIANT_FROM_UPSELL_MODAL_ID,
 } from "@/utils/constants";
+import UpsellDao from "@/dao/upsell";
+import { ProductRefreshDto } from "./api.products.$id.refresh";
+import { ProductVariant } from "@/types/product-variant";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -44,8 +47,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     : [];
   const collections = await getCollections(request);
   const shop = await getShop(request);
+  const upsell = await UpsellDao.getByProductId(id);
 
-  return { product, metafieldVariants, collections, shop };
+  return { product, metafieldVariants, collections, shop, upsell };
 };
 
 const settingDetails = Object.freeze({
@@ -65,16 +69,29 @@ const settingDetails = Object.freeze({
   ),
 });
 
+const SAVE_UPSELL_BAR = "SAVE_UPSELL_BAR";
+
 function Product() {
   const appBridge = useAppBridge();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
+
   const { id } = useParams();
-  const { product, metafieldVariants, collections, shop } =
+  const { product, metafieldVariants, collections, shop, upsell } =
     useLoaderData<typeof loader>();
 
-  const [mode, setMode] = useState<UpsellMode>(UpsellMode.Metafield);
   const [variantToRemove, setVariantToRemove] = useState<string | null>(null);
+
+  const [mode, setMode] = useState<UpsellMode>(
+    upsell?.mode || UpsellMode.Metafield,
+  );
+  const [enabled, setEnabled] = useState<boolean>(upsell?.enabled ?? true);
+  const [collectionId, setCollectionId] = useState<string | null>(
+    upsell?.collectionId || null,
+  );
+  const [upsellVariants, setUpsellVariants] = useState<ProductVariant[]>(
+    metafieldVariants || [],
+  );
 
   const productUrl = getProductUrl(
     shop?.myshopifyDomain?.split?.(".")?.[0] || "",
@@ -82,7 +99,7 @@ function Product() {
   );
 
   const handleBack = () => {
-    navigate("/app");
+    appBridge.saveBar.leaveConfirmation().then(() => navigate("/app"));
   };
 
   const handleEdit = () => {
@@ -93,8 +110,21 @@ function Product() {
     window.open(productUrl);
   };
 
-  const handleModeChange = (event: CallbackEvent<"s-choice-list">) => {
-    setMode(event.currentTarget.values[0] as UpsellMode);
+  const handleModeChange = async (event: CallbackEvent<"s-choice-list">) => {
+    appBridge.saveBar.show(SAVE_UPSELL_BAR);
+
+    const mode =
+      event.currentTarget.values[0] === UpsellMode.Metafield
+        ? UpsellMode.Metafield
+        : UpsellMode.SelectedCollection;
+
+    setMode(mode);
+  };
+
+  const handleEnabled = async () => {
+    appBridge.saveBar.show(SAVE_UPSELL_BAR);
+
+    setEnabled(!enabled);
   };
 
   const handleConfirmRemoveVariant = async () => {
@@ -126,8 +156,58 @@ function Product() {
     revalidator.revalidate();
   };
 
+  const handleSave = async () => {
+    appBridge.saveBar.hide(SAVE_UPSELL_BAR);
+
+    if (id) {
+      const dto: ProductRefreshDto = {
+        mode,
+        enabled,
+      };
+
+      if (upsellVariants) {
+        dto.offers = upsellVariants?.map((v) => ({
+          price: Number(v.price),
+          productId: v.product.id,
+        }));
+      }
+
+      if (collectionId) {
+        dto.collectionId = collectionId;
+      }
+
+      const { success } = await Api.refreshProductUpsell(id, dto);
+
+      if (success) {
+        appBridge.toast.show("Upsell settings saved successfully");
+      } else {
+        appBridge.toast.show("Failed to save upsell settings");
+      }
+    }
+  };
+
+  const handleDiscardSave = () => {
+    appBridge.saveBar.hide(SAVE_UPSELL_BAR);
+
+    setMode(upsell?.mode || UpsellMode.Metafield);
+    setEnabled(upsell?.enabled ?? true);
+    setCollectionId(upsell?.collectionId || null);
+  };
+
+  const handleCollectionChange = (collectionId: string) => {
+    setCollectionId(collectionId);
+  };
+
+  useEffect(() => {
+    setUpsellVariants(metafieldVariants || []);
+  }, [metafieldVariants]);
+
   return (
     <s-page heading={product?.title}>
+      <SaveBar id={SAVE_UPSELL_BAR}>
+        <button variant="primary" onClick={handleSave}></button>
+        <button onClick={handleDiscardSave}></button>
+      </SaveBar>
       <ConfirmModal
         heading="Remove variant from upsell"
         paragraph="Are you sure you want to remove this variant from the upsell?"
@@ -163,7 +243,8 @@ function Product() {
               <s-switch
                 label="Enable upsell"
                 details="Enable or disable the post purchase upsell for this product"
-                defaultChecked
+                onChange={handleEnabled}
+                checked={enabled}
               ></s-switch>
             </s-stack>
 
@@ -179,10 +260,16 @@ function Product() {
                 details="Upsell recommendation mode"
                 onChange={handleModeChange}
               >
-                <s-choice value={UpsellMode.Metafield} defaultSelected>
+                <s-choice
+                  value={UpsellMode.Metafield}
+                  selected={mode === UpsellMode.Metafield}
+                >
                   <s-text>Metafield</s-text>
                 </s-choice>
-                <s-choice value={UpsellMode.SelectedCollection}>
+                <s-choice
+                  value={UpsellMode.SelectedCollection}
+                  selected={mode === UpsellMode.SelectedCollection}
+                >
                   <s-text>Selected collection</s-text>
                 </s-choice>
               </s-choice-list>
@@ -194,7 +281,9 @@ function Product() {
 
             <CollectionSelector
               collections={collections}
+              selectedCollectionId={collectionId || ""}
               isDisabled={mode !== UpsellMode.SelectedCollection}
+              onChange={handleCollectionChange}
             />
 
             <br />
@@ -202,7 +291,7 @@ function Product() {
             <br />
 
             <MetafieldList
-              variants={metafieldVariants}
+              variants={upsellVariants}
               disabled={mode !== UpsellMode.Metafield}
               myShopifyDomain={shop?.myshopifyDomain || ""}
               onAddVariants={handleAddVariants}

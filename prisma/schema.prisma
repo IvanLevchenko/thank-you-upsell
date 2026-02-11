@@ -30,7 +30,7 @@ model Session {
 }
 
 model ProductUpsell {
-  id              String     @id
+  id              String     @id @default(uuid())
   productId       String     @map("product_id")
   mode            UpsellMode @default(Metafield)
   collectionId    String?    @map("collection_id")

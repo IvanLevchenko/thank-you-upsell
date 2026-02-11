@@ -1,4 +1,5 @@
 import { MetafieldSetDto } from "@/mutations/metafield/set-metafield";
+import { ProductRefreshDto } from "@/routes/api.products.$id.refresh";
 import { DefaultResponse } from "@/types/default-response";
 import { ProductVariant } from "@/types/product-variant";
 
@@ -47,6 +48,29 @@ export class Api {
         success: false,
         error: "Failed to get product upsell variants",
         details: error,
+      };
+    }
+  }
+
+  static async refreshProductUpsell(
+    productId: string,
+    dto: ProductRefreshDto,
+  ): Promise<DefaultResponse> {
+    try {
+      const response = await fetch(`/api/products/${productId}/refresh`, {
+        method: "POST",
+        body: JSON.stringify(dto),
+      });
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+      };
+    } catch (e) {
+      return {
+        success: false,
+        error: "Failed to refresh product upsell",
+        details: e,
       };
     }
   }
