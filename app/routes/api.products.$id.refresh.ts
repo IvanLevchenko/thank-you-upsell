@@ -22,14 +22,14 @@ export const action = async ({
   const { mode, collectionId, enabled } =
     (await request.json()) as ProductRefreshDto;
 
-  const productUpsell = await prisma.productUpsell.findFirst({
+  let productUpsell = await prisma.productUpsell.findFirst({
     where: {
       productId: id,
     },
   });
 
   if (!productUpsell) {
-    await prisma.productUpsell.create({
+    productUpsell = await prisma.productUpsell.create({
       data: {
         productId: id,
         mode,
@@ -38,7 +38,7 @@ export const action = async ({
       },
     });
   } else {
-    await prisma.productUpsell.update({
+    productUpsell = await prisma.productUpsell.update({
       where: { id: productUpsell.id },
       data: {
         mode,
@@ -48,5 +48,5 @@ export const action = async ({
     });
   }
 
-  return { success: true };
+  return { success: true, data: productUpsell };
 };

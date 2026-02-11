@@ -1,3 +1,5 @@
+import { ProductUpsell } from "@prisma/client";
+
 import { MetafieldSetDto } from "@/mutations/metafield/set-metafield";
 import { ProductRefreshDto } from "@/routes/api.products.$id.refresh";
 import { DefaultResponse } from "@/types/default-response";
@@ -55,7 +57,7 @@ export class Api {
   static async refreshProductUpsell(
     productId: string,
     dto: ProductRefreshDto,
-  ): Promise<DefaultResponse> {
+  ): Promise<DefaultResponse<ProductUpsell>> {
     try {
       const response = await fetch(`/api/products/${productId}/refresh`, {
         method: "POST",

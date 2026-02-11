@@ -21,16 +21,13 @@ export const CollectionSelector = ({
         <s-select
           disabled={isDisabled}
           label="Collection name"
+          value={selectedCollectionId}
           onChange={(e: CallbackEvent<"s-select">) =>
             onChange(e.currentTarget.value)
           }
         >
           {(collections || []).map((collection) => (
-            <s-option
-              key={collection.id}
-              value={collection.id}
-              selected={selectedCollectionId === collection.id}
-            >
+            <s-option key={collection.id} value={collection.id}>
               {collection.title}
             </s-option>
           ))}

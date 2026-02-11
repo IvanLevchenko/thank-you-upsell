@@ -118,6 +118,7 @@ function Product() {
         ? UpsellMode.Metafield
         : UpsellMode.SelectedCollection;
 
+    setCollectionId(null);
     setMode(mode);
   };
 
@@ -171,11 +172,11 @@ function Product() {
 
       const { success } = await Api.refreshProductUpsell(id, dto);
 
-      if (success) {
-        appBridge.toast.show("Upsell settings saved successfully");
-      } else {
-        appBridge.toast.show("Failed to save upsell settings");
-      }
+      appBridge.toast.show(
+        success
+          ? "Upsell settings saved successfully"
+          : "Failed to save upsell settings",
+      );
     }
   };
 
@@ -188,6 +189,7 @@ function Product() {
   };
 
   const handleCollectionChange = (collectionId: string) => {
+    appBridge.saveBar.show(SAVE_UPSELL_BAR);
     setCollectionId(collectionId);
   };
 
