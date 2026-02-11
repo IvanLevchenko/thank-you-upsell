@@ -165,13 +165,6 @@ function Product() {
         enabled,
       };
 
-      if (upsellVariants) {
-        dto.offers = upsellVariants?.map((v) => ({
-          price: Number(v.price),
-          productId: v.product.id,
-        }));
-      }
-
       if (collectionId) {
         dto.collectionId = collectionId;
       }

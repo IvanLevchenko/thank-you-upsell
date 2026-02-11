@@ -9,10 +9,6 @@ export type ProductRefreshDto = {
   mode?: UpsellMode;
   collectionId?: string;
   enabled?: boolean;
-  offers?: {
-    productId: string;
-    price: number;
-  }[];
 };
 
 export const action = async ({
@@ -23,7 +19,7 @@ export const action = async ({
     .replace("/api/products/", "")
     .replace("/refresh", "");
 
-  const { mode, collectionId, enabled, offers } =
+  const { mode, collectionId, enabled } =
     (await request.json()) as ProductRefreshDto;
 
   const productUpsell = await prisma.productUpsell.findFirst({
@@ -39,7 +35,6 @@ export const action = async ({
         mode,
         collectionId,
         enabled,
-        offers,
       },
     });
   } else {
@@ -49,7 +44,6 @@ export const action = async ({
         mode,
         collectionId,
         enabled,
-        offers,
       },
     });
   }

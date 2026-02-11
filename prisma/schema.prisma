@@ -35,7 +35,6 @@ model ProductUpsell {
   mode            UpsellMode @default(Metafield)
   collectionId    String?    @map("collection_id")
   enabled         Boolean    @default(true)
-  offers          Json[]
 
   @@map("product_upsells")
 }
