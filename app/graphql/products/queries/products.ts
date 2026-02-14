@@ -1,6 +1,8 @@
-export const products = `
+import { FilterQuery } from "@/types/filter-query";
+
+export const products = (filter: FilterQuery) => `
   query Products {
-    products(first: 100) {
+    products(first: 100${filter.title ? `, query: "title:${filter.title}*"` : ""}) {
       edges {
         node {
           id

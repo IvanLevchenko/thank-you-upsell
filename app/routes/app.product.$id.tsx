@@ -8,7 +8,7 @@ import {
 import { useEffect, useState } from "react";
 import { CallbackEvent } from "@shopify/polaris-types";
 import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
-import { ProductUpsell, UpsellMode } from "@prisma/client";
+import { UpsellMode } from "@prisma/client";
 
 import { getProduct } from "@/queries/product/get-product";
 import { IdConverter } from "@/helpers/id-converter";

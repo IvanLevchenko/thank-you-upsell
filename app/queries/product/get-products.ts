@@ -2,12 +2,16 @@ import { authenticate } from "@/shopify.server";
 import { products } from "@/graphql/products/queries/products";
 import { Connection } from "@/types/connection";
 import { Product } from "@/types/product";
+import { FilterQuery } from "@/types/filter-query";
 
 export const getProducts = async (
   request: Request,
+  filter: FilterQuery = {},
 ): Promise<Connection<Product>> => {
   const { admin } = await authenticate.admin(request);
-  const { data } = await (await admin.graphql(products)).json();
+  console.log(products(filter));
+  const { data } = await (await admin.graphql(products(filter))).json();
+  console.log(data);
 
   return data.products as Connection<Product>;
 };
