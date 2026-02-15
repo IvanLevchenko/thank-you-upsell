@@ -6,6 +6,12 @@ class UpsellDao {
       where: { productId },
     });
   }
+
+  static async getByIdList(ids: string[]) {
+    return await prisma.productUpsell.findMany({
+      where: { productId: { in: ids } },
+    });
+  }
 }
 
 export default UpsellDao;
