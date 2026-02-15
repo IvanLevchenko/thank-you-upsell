@@ -20,11 +20,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const url = new URL(request.url);
   const searchParams = url.searchParams;
+
   const title = searchParams.get("title");
+  const enabled = searchParams.get("enabled") === "true";
 
   const filter: FilterQuery = {};
   if (title) {
     filter.title = title;
+  }
+
+  if (enabled) {
+    filter.enabled = enabled;
   }
 
   const products = await getProducts(request, filter);

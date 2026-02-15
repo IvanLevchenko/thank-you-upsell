@@ -31,12 +31,23 @@ model Session {
 
 model ProductUpsell {
   id              String     @id @default(uuid())
-  productId       String     @map("product_id")
+  productId       String     @unique @map("product_id")
   mode            UpsellMode @default(Metafield)
   collectionId    String?    @map("collection_id")
   enabled         Boolean    @default(true)
 
+  product         Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@map("product_upsells")
+}
+
+model Product {
+  id String @id @unique
+  title String
+  image String?
+  upsell ProductUpsell?
+
+  @@map("products")
 }
 
 enum UpsellMode {
