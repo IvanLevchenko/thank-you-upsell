@@ -10,7 +10,7 @@ import { useRef } from "react";
 
 import { authenticate } from "../shopify.server";
 import { getProducts } from "../queries/product/get-products";
-import { FilterQuery } from "@/types/filter-query";
+import { UpsellFilter } from "@/types/upsell-filter";
 import UpsellDao from "@/dao/upsell";
 import { IdConverter } from "@/helpers/id-converter";
 import { UpsellEnabledFilter } from "@/enums/upsell-enabled-label";
@@ -24,7 +24,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const title = searchParams.get("title");
   const enabled = searchParams.get("enabled") === "true";
 
-  const filter: FilterQuery = {};
+  const filter: UpsellFilter = {};
   if (title) {
     filter.title = title;
   }
@@ -34,11 +34,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   const products = await getProducts(request, filter);
-  const upsells = await UpsellDao.getByIdList(
-    products.edges.map((edge) =>
-      IdConverter.fromShopifyIdToNumber(edge.node.id).toString(),
-    ),
-  );
+  const upsells = [1];
 
   return { products, upsells };
 };

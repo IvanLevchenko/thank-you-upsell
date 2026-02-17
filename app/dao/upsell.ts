@@ -1,4 +1,5 @@
 import prisma from "@/db.server";
+import { UpsellFilter } from "@/types/upsell-filter";
 
 class UpsellDao {
   static async getByProductId(productId: string) {
@@ -7,9 +8,13 @@ class UpsellDao {
     });
   }
 
-  static async getByIdList(ids: string[]) {
+  static async list(filter: UpsellFilter, page: number, take: number) {
     return await prisma.productUpsell.findMany({
-      where: { productId: { in: ids } },
+      where: {
+        ...(filter.enabled !== undefined ? { enabled: filter.enabled } : {}),
+      },
+      skip: (page - 1) * take,
+      take,
     });
   }
 }
