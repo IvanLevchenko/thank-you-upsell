@@ -1,6 +1,6 @@
 import { UpsellFilter } from "@/types/upsell-filter";
 
-export const products = (filter: UpsellFilter) => `
+export const products = (filter: UpsellFilter = {}) => `
   query Products {
     products(first: 100${filter.title ? `, query: "title:${filter.title}*"` : ""}) {
       edges {

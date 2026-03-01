@@ -28,9 +28,12 @@ CREATE TABLE "sessions" (
 CREATE TABLE "product_upsells" (
     "id" TEXT NOT NULL,
     "product_id" TEXT NOT NULL,
-    "upsell_product_id" TEXT NOT NULL,
-    "mode" "UpsellMode" NOT NULL,
+    "mode" "UpsellMode" NOT NULL DEFAULT 'Metafield',
     "collection_id" TEXT,
+    "enabled" BOOLEAN NOT NULL DEFAULT false,
+    "title" TEXT NOT NULL,
+    "image" TEXT,
+    "store" TEXT NOT NULL,
 
     CONSTRAINT "product_upsells_pkey" PRIMARY KEY ("id")
 );

@@ -5,15 +5,24 @@ import type {
 } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CallbackEvent } from "@shopify/polaris-types";
-import { useLoaderData, useNavigate, useSearchParams } from "react-router";
-import { useRef } from "react";
+import {
+  useLoaderData,
+  useNavigate,
+  useRevalidator,
+  useSearchParams,
+} from "react-router";
+import { useRef, useState } from "react";
+import { io } from "socket.io-client";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 import { authenticate } from "../shopify.server";
-import { getProducts } from "../queries/product/get-products";
 import { UpsellFilter } from "@/types/upsell-filter";
-import UpsellDao from "@/dao/upsell";
-import { IdConverter } from "@/helpers/id-converter";
 import { UpsellEnabledFilter } from "@/enums/upsell-enabled-label";
+import { SocketEvents } from "@/enums/socket-events";
+import { getShop } from "@/queries/shop/get-shop";
+import UpsellDao from "@/dao/upsell";
+
+const SYNC_PRODUCTS_MODAL_ID = "sync-products-modal";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -23,6 +32,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const title = searchParams.get("title");
   const enabled = searchParams.get("enabled") === "true";
+  const page = searchParams.get("page")
+    ? parseInt(searchParams.get("page")!)
+    : 1;
 
   const filter: UpsellFilter = {};
   if (title) {
@@ -33,10 +45,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     filter.enabled = enabled;
   }
 
-  const products = await getProducts(request, filter);
-  const upsells = [1];
+  const upsells = await UpsellDao.list(filter, page, 100);
+  const shop = await getShop(request);
 
-  return { products, upsells };
+  return { upsells, shop };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -46,16 +58,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Index() {
-  const { products, upsells } = useLoaderData<typeof loader>();
-  const navigate = useNavigate();
+  const { upsells, shop } = useLoaderData<typeof loader>();
   const [, setSearchParams] = useSearchParams();
 
-  console.log(upsells);
+  const navigate = useNavigate();
+  const appBridge = useAppBridge();
+  const revalidator = useRevalidator();
+
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const handleOpenProduct = (gid: string) => {
     const url = new URL(gid);
     const productId = url.pathname.split("/").pop();
-    navigate(`/app/product/${productId}`);
+
+    navigate(`/app/upsells/${productId}`);
   };
 
   const searchDelay = useRef<NodeJS.Timeout | null>(null);
@@ -80,8 +96,42 @@ export default function Index() {
     );
   };
 
+  const handleSyncProducts = () => {
+    setIsSyncing(true);
+
+    const socket = io("http://localhost:3005");
+    socket.on("connect", () => {
+      socket.emit(SocketEvents.SYNC_PRODUCTS, shop.myshopifyDomain);
+    });
+
+    socket.on(SocketEvents.SYNC_PRODUCTS_COMPLETED, () => {
+      socket.disconnect();
+
+      appBridge.toast.show("Sync completed");
+      setIsSyncing(false);
+
+      revalidator.revalidate();
+    });
+  };
+
   return (
     <s-page heading="Shopify app template">
+      <s-popover id={SYNC_PRODUCTS_MODAL_ID}>
+        <s-stack padding="small">
+          <s-paragraph>Start syncing products to enable upsells</s-paragraph>
+          <s-stack direction="inline" gap="small" paddingBlockStart="small">
+            <s-button variant="primary" onClick={handleSyncProducts}>
+              Sync products
+            </s-button>
+            <s-button>Cancel</s-button>
+          </s-stack>
+        </s-stack>
+      </s-popover>
+      <s-stack padding="base none">
+        <s-button variant="primary" commandFor={SYNC_PRODUCTS_MODAL_ID}>
+          Sync products
+        </s-button>
+      </s-stack>
       <s-section heading="Products">
         <s-search-field
           onInput={handleSearch}
@@ -101,44 +151,43 @@ export default function Index() {
           </s-select>
         </s-box>
         <s-stack gap="base">
-          {(products.edges || []).map((edge) => {
-            const imageUrl =
-              edge.node?.media?.edges[0]?.node?.preview?.image?.url;
-            const enabled = upsells.find(
-              (upsell) =>
-                IdConverter.fromNumberToShopifyId(upsell.productId) ===
-                edge.node.id,
-            )?.enabled;
+          {upsells.length ? (
+            upsells.map((upsell) => {
+              const imageUrl = upsell.image;
+              const enabled = upsell.enabled;
 
-            return (
-              <s-clickable
-                key={edge.node.id}
-                blockSize="100px"
-                padding="small"
-                onClick={() => handleOpenProduct(edge.node.id)}
-              >
-                <s-stack direction="inline" justifyContent="space-between">
-                  <s-stack direction="inline" alignItems="center" gap="small">
-                    <img
-                      width={50}
-                      src={imageUrl || ""}
-                      alt={edge.node.title}
-                    />
-                    <s-heading>{edge.node.title}</s-heading>
+              return (
+                <s-clickable
+                  key={upsell.id}
+                  blockSize="100px"
+                  padding="small"
+                  disabled={isSyncing}
+                  onClick={() => handleOpenProduct(upsell.productId)}
+                >
+                  <s-stack direction="inline" justifyContent="space-between">
+                    <s-stack direction="inline" alignItems="center" gap="small">
+                      <img width={50} src={imageUrl || ""} alt={upsell.title} />
+                      <s-heading>{upsell.title}</s-heading>
+                    </s-stack>
+                    <s-stack
+                      direction="inline"
+                      inlineSize="auto"
+                      alignItems="center"
+                    >
+                      <s-badge tone={enabled ? "success" : "warning"}>
+                        {enabled ? "Active" : "Inactive"}
+                      </s-badge>
+                    </s-stack>
                   </s-stack>
-                  <s-stack
-                    direction="inline"
-                    inlineSize="auto"
-                    alignItems="center"
-                  >
-                    <s-badge tone={enabled ? "success" : "warning"}>
-                      {enabled ? "Active" : "Inactive"}
-                    </s-badge>
-                  </s-stack>
-                </s-stack>
-              </s-clickable>
-            );
-          })}
+                </s-clickable>
+              );
+            })
+          ) : (
+            <s-stack direction="inline" alignItems="center" gap="small">
+              <s-icon type="info" size="base"></s-icon>
+              <s-text>No upsells found</s-text>
+            </s-stack>
+          )}
         </s-stack>
       </s-section>
     </s-page>

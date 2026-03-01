@@ -5,7 +5,7 @@ export const graphql = async <T>(
   variables?: Record<string, any>,
 ): Promise<{ data: T }> => {
   const response = await fetch(
-    `https://${shop}/admin/api/2025-10/graphql.json`,
+    `https://${shop}/admin/api/2026-01/graphql.json`,
     {
       method: "POST",
       headers: {

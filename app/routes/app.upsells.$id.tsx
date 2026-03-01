@@ -14,7 +14,6 @@ import { getProduct } from "@/queries/product/get-product";
 import { IdConverter } from "@/helpers/id-converter";
 import { getShop } from "@/queries/shop/get-shop";
 import { getVariantsFromMetafield } from "@/queries/variant/get-variants-from-metafield";
-import type { Product } from "@/types/product";
 import { getProductUrl } from "@/helpers/get-product-url";
 import { MetafieldList } from "@/components/product/metafield-list";
 import { CollectionSelector } from "@/components/product/collection-selector";
@@ -35,7 +34,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { id } = params;
 
   if (!id) {
-    return { product: null };
+    return {};
   }
 
   const product = await getProduct(
@@ -47,9 +46,11 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     : [];
   const collections = await getCollections(request);
   const shop = await getShop(request);
-  const upsell = await UpsellDao.getByProductId(id);
+  const upsell = await UpsellDao.getByProductId(
+    IdConverter.fromNumberToShopifyId(id),
+  );
 
-  return { product, metafieldVariants, collections, shop, upsell };
+  return { metafieldVariants, collections, shop, upsell };
 };
 
 const settingDetails = Object.freeze({
@@ -71,13 +72,13 @@ const settingDetails = Object.freeze({
 
 const SAVE_UPSELL_BAR = "SAVE_UPSELL_BAR";
 
-function Product() {
+function Upsell() {
   const appBridge = useAppBridge();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
 
   const { id } = useParams();
-  const { product, metafieldVariants, collections, shop, upsell } =
+  const { metafieldVariants, collections, shop, upsell } =
     useLoaderData<typeof loader>();
 
   const [variantToRemove, setVariantToRemove] = useState<string | null>(null);
@@ -198,7 +199,7 @@ function Product() {
   }, [metafieldVariants]);
 
   return (
-    <s-page heading={product?.title}>
+    <s-page heading={upsell?.title}>
       <SaveBar id={SAVE_UPSELL_BAR}>
         <button variant="primary" onClick={handleSave}></button>
         <button onClick={handleDiscardSave}></button>
@@ -223,10 +224,7 @@ function Product() {
         <s-grid gridTemplateColumns="1fr 2fr">
           <s-stack alignItems="start">
             <s-box blockSize="300px" paddingBlockStart="base">
-              <s-image
-                src={product?.media?.edges[0]?.node?.preview?.image?.url}
-                alt={product?.title}
-              />
+              <s-image src={upsell?.image || ""} alt={upsell?.title} />
             </s-box>
           </s-stack>
           <s-stack>
@@ -300,4 +298,4 @@ function Product() {
   );
 }
 
-export default Product;
+export default Upsell;

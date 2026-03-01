@@ -1,5 +1,6 @@
 import prisma from "@/db.server";
 import { UpsellFilter } from "@/types/upsell-filter";
+import { Prisma } from "@prisma/client";
 
 class UpsellDao {
   static async getByProductId(productId: string) {
@@ -9,10 +10,18 @@ class UpsellDao {
   }
 
   static async list(filter: UpsellFilter, page: number, take: number) {
+    const where: Prisma.ProductUpsellWhereInput = {};
+
+    if (filter.enabled !== undefined) {
+      where.enabled = filter.enabled;
+    }
+
+    if (filter.title !== undefined) {
+      where.title = { contains: filter.title, mode: "insensitive" };
+    }
+
     return await prisma.productUpsell.findMany({
-      where: {
-        ...(filter.enabled !== undefined ? { enabled: filter.enabled } : {}),
-      },
+      where,
       skip: (page - 1) * take,
       take,
     });
