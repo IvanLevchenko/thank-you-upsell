@@ -11,7 +11,7 @@ import {
   useRevalidator,
   useSearchParams,
 } from "react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useAppBridge } from "@shopify/app-bridge-react";
 
@@ -21,6 +21,10 @@ import { UpsellEnabledFilter } from "@/enums/upsell-enabled-label";
 import { SocketEvents } from "@/enums/socket-events";
 import { getShop } from "@/queries/shop/get-shop";
 import UpsellDao from "@/dao/upsell";
+import Pagination from "@/components/general/pagination";
+import WithOverlay from "@/components/hocs/with-overlay";
+
+import "../index.css";
 
 const SYNC_PRODUCTS_MODAL_ID = "sync-products-modal";
 
@@ -31,7 +35,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const searchParams = url.searchParams;
 
   const title = searchParams.get("title");
-  const enabled = searchParams.get("enabled") === "true";
+  const enabled = searchParams.has("enabled")
+    ? searchParams.get("enabled") === "true"
+    : undefined;
   const page = searchParams.get("page")
     ? parseInt(searchParams.get("page")!)
     : 1;
@@ -41,14 +47,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     filter.title = title;
   }
 
-  if (enabled) {
+  if (enabled !== undefined) {
     filter.enabled = enabled;
   }
 
-  const upsells = await UpsellDao.list(filter, page, 100);
+  const take = 10;
+
+  const upsells = await UpsellDao.list(filter, page, take);
+  const totalUpsells = await UpsellDao.count(filter);
   const shop = await getShop(request);
 
-  return { upsells, shop };
+  return { upsells, totalUpsells, take, page, shop };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -58,14 +67,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Index() {
-  const { upsells, shop } = useLoaderData<typeof loader>();
-  const [, setSearchParams] = useSearchParams();
+  const { upsells, totalUpsells, take, page, shop } =
+    useLoaderData<typeof loader>();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const navigate = useNavigate();
   const appBridge = useAppBridge();
   const revalidator = useRevalidator();
 
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleOpenProduct = (gid: string) => {
     const url = new URL(gid);
@@ -82,7 +92,9 @@ export default function Index() {
     }
     const input = event.currentTarget.value;
     searchDelay.current = setTimeout(async () => {
-      setSearchParams(input.length ? { title: input } : {});
+      setSearchParams(
+        input.length ? { ...getExistingSearchParams(), title: input } : {},
+      );
     }, 500);
   };
 
@@ -92,12 +104,15 @@ export default function Index() {
     setSearchParams(
       value === UpsellEnabledFilter.All
         ? {}
-        : { enabled: value === UpsellEnabledFilter.Active ? "true" : "false" },
+        : {
+            ...getExistingSearchParams(),
+            enabled: value === UpsellEnabledFilter.Active ? "true" : "false",
+          },
     );
   };
 
   const handleSyncProducts = () => {
-    setIsSyncing(true);
+    setIsLoading(true);
 
     const socket = io("http://localhost:3005");
     socket.on("connect", () => {
@@ -108,11 +123,24 @@ export default function Index() {
       socket.disconnect();
 
       appBridge.toast.show("Sync completed");
-      setIsSyncing(false);
+      setIsLoading(false);
 
       revalidator.revalidate();
     });
   };
+
+  const handlePageChange = (page: number) => {
+    setIsLoading(true);
+    setSearchParams({ ...getExistingSearchParams(), page: page.toString() });
+  };
+
+  const getExistingSearchParams = () => {
+    return Object.fromEntries(searchParams.entries());
+  };
+
+  useEffect(() => {
+    setIsLoading(false);
+  }, [searchParams]);
 
   return (
     <s-page heading="Shopify app template">
@@ -123,7 +151,9 @@ export default function Index() {
             <s-button variant="primary" onClick={handleSyncProducts}>
               Sync products
             </s-button>
-            <s-button>Cancel</s-button>
+            <s-button commandFor={SYNC_PRODUCTS_MODAL_ID} command="--hide">
+              Cancel
+            </s-button>
           </s-stack>
         </s-stack>
       </s-popover>
@@ -132,7 +162,7 @@ export default function Index() {
           Sync products
         </s-button>
       </s-stack>
-      <s-section heading="Products">
+      <s-section heading="Products" padding="base">
         <s-search-field
           onInput={handleSearch}
           placeholder="Product name"
@@ -150,46 +180,62 @@ export default function Index() {
             </s-option>
           </s-select>
         </s-box>
-        <s-stack gap="base">
-          {upsells.length ? (
-            upsells.map((upsell) => {
-              const imageUrl = upsell.image;
-              const enabled = upsell.enabled;
+        <WithOverlay isLoading={isLoading}>
+          <s-stack gap="base">
+            {upsells.length ? (
+              upsells.map((upsell) => {
+                const imageUrl = upsell.image;
+                const enabled = upsell.enabled;
 
-              return (
-                <s-clickable
-                  key={upsell.id}
-                  blockSize="100px"
-                  padding="small"
-                  disabled={isSyncing}
-                  onClick={() => handleOpenProduct(upsell.productId)}
-                >
-                  <s-stack direction="inline" justifyContent="space-between">
-                    <s-stack direction="inline" alignItems="center" gap="small">
-                      <img width={50} src={imageUrl || ""} alt={upsell.title} />
-                      <s-heading>{upsell.title}</s-heading>
+                return (
+                  <s-clickable
+                    key={upsell.id}
+                    blockSize="100px"
+                    padding="small"
+                    disabled={isLoading}
+                    onClick={() => handleOpenProduct(upsell.productId)}
+                  >
+                    <s-stack direction="inline" justifyContent="space-between">
+                      <s-stack
+                        direction="inline"
+                        alignItems="center"
+                        gap="small"
+                      >
+                        <img
+                          width={50}
+                          src={imageUrl || ""}
+                          alt={upsell.title}
+                        />
+                        <s-heading>{upsell.title}</s-heading>
+                      </s-stack>
+                      <s-stack
+                        direction="inline"
+                        inlineSize="auto"
+                        alignItems="center"
+                      >
+                        <s-badge tone={enabled ? "success" : "warning"}>
+                          {enabled ? "Active" : "Inactive"}
+                        </s-badge>
+                      </s-stack>
                     </s-stack>
-                    <s-stack
-                      direction="inline"
-                      inlineSize="auto"
-                      alignItems="center"
-                    >
-                      <s-badge tone={enabled ? "success" : "warning"}>
-                        {enabled ? "Active" : "Inactive"}
-                      </s-badge>
-                    </s-stack>
-                  </s-stack>
-                </s-clickable>
-              );
-            })
-          ) : (
-            <s-stack direction="inline" alignItems="center" gap="small">
-              <s-icon type="info" size="base"></s-icon>
-              <s-text>No upsells found</s-text>
-            </s-stack>
-          )}
-        </s-stack>
+                  </s-clickable>
+                );
+              })
+            ) : (
+              <s-stack direction="inline" alignItems="center" gap="small">
+                <s-icon type="info" size="base"></s-icon>
+                <s-text>No upsells found</s-text>
+              </s-stack>
+            )}
+          </s-stack>
+        </WithOverlay>
       </s-section>
+      <Pagination
+        totalItems={totalUpsells}
+        itemsPerPage={take}
+        currentPage={page}
+        onPageChange={handlePageChange}
+      />
     </s-page>
   );
 }

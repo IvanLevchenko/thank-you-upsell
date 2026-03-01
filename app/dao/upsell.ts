@@ -20,11 +20,28 @@ class UpsellDao {
       where.title = { contains: filter.title, mode: "insensitive" };
     }
 
+    console.log("filter", filter);
+    console.log("where", where);
+
     return await prisma.productUpsell.findMany({
       where,
       skip: (page - 1) * take,
       take,
     });
+  }
+
+  static async count(filter: UpsellFilter) {
+    const where: Prisma.ProductUpsellWhereInput = {};
+
+    if (filter.enabled !== undefined) {
+      where.enabled = filter.enabled;
+    }
+
+    if (filter.title !== undefined) {
+      where.title = { contains: filter.title, mode: "insensitive" };
+    }
+
+    return await prisma.productUpsell.count({ where });
   }
 }
 

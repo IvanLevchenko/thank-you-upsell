@@ -15,8 +15,8 @@ import { IdConverter } from "@/helpers/id-converter";
 import { getShop } from "@/queries/shop/get-shop";
 import { getVariantsFromMetafield } from "@/queries/variant/get-variants-from-metafield";
 import { getProductUrl } from "@/helpers/get-product-url";
-import { MetafieldList } from "@/components/product/metafield-list";
-import { CollectionSelector } from "@/components/product/collection-selector";
+import { MetafieldList } from "@/components/upsell/metafield-list";
+import { CollectionSelector } from "@/components/upsell/collection-selector";
 import { getCollections } from "@/queries/collection/get-collections";
 import { ConfirmModal } from "@/components/general/confirm-modal";
 import { authenticate } from "@/shopify.server";
@@ -26,7 +26,7 @@ import {
   REMOVE_VARIANT_FROM_UPSELL_MODAL_ID,
 } from "@/utils/constants";
 import UpsellDao from "@/dao/upsell";
-import { ProductRefreshDto } from "./api.products.$id.refresh";
+import { ProductRefreshDto } from "@/routes/api.upsells.$id.refresh";
 import { ProductVariant } from "@/types/product-variant";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -178,6 +178,10 @@ function Upsell() {
           ? "Upsell settings saved successfully"
           : "Failed to save upsell settings",
       );
+
+      if (success) {
+        navigate(`/app/upsells`);
+      }
     }
   };
 
