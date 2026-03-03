@@ -31,11 +31,7 @@ export class SyncService {
     }
   }
 
-  static async syncProducts(
-    socket: Socket,
-    storeName: string,
-    onError: (error: string) => void,
-  ) {
+  static async syncProducts(socket: Socket, storeName: string) {
     const session = await prisma.session.findFirst({
       where: {
         shop: storeName,
@@ -43,33 +39,56 @@ export class SyncService {
     });
 
     if (!session) {
-      onError("Session not found");
+      console.error("Could not find session for store " + storeName);
       return;
     }
 
-    const data = await graphql<{ products: Connection<Product> }>(
-      session.shop,
-      session.accessToken,
-      products(),
-    );
-    let productsList = data.data.products.edges.map((edge) => edge.node);
-    let hasNextPage = data.data.products.pageInfo.hasNextPage;
-
-    await SyncService.createUpsells(productsList, session);
-
-    while (hasNextPage) {
-      const nextData = await graphql<{ products: Connection<Product> }>(
+    let data: { data: { products: Connection<Product> } } | null = null;
+    try {
+      data = await graphql<{ products: Connection<Product> }>(
         session.shop,
         session.accessToken,
         products(),
-        { after: data.data.products.pageInfo.endCursor },
       );
-      productsList = nextData.data.products.edges.map((edge) => edge.node);
-      hasNextPage = nextData.data.products.pageInfo.hasNextPage;
+    } catch (e) {
+      console.error("Error syncing products for store " + storeName, e);
+    }
 
+    if (!data) {
+      console.error("No data returned from Shopify for store " + storeName);
+      return;
+    }
+
+    let productsList = data.data.products.edges.map((edge) => edge.node);
+    let hasNextPage = data.data.products.pageInfo.hasNextPage;
+
+    try {
       await SyncService.createUpsells(productsList, session);
+    } catch (e) {
+      console.error("Error creating upsells for store " + storeName, e);
+    }
+
+    while (hasNextPage) {
+      try {
+        const nextData = await graphql<{ products: Connection<Product> }>(
+          session.shop,
+          session.accessToken,
+          products(),
+          { after: data.data.products.pageInfo.endCursor },
+        );
+        productsList = nextData.data.products.edges.map((edge) => edge.node);
+        hasNextPage = nextData.data.products.pageInfo.hasNextPage;
+
+        await SyncService.createUpsells(productsList, session);
+      } catch (e) {
+        console.error("Error syncing products for store " + storeName, e);
+      }
     }
 
     socket.emit(SocketEvents.SYNC_PRODUCTS_COMPLETED);
+
+    console.log("Sync completed for store " + storeName);
+    console.log("Disconnecting socket for store " + storeName);
+    socket.disconnect();
   }
 }

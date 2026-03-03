@@ -92,6 +92,7 @@ export default function Index() {
     }
     const input = event.currentTarget.value;
     searchDelay.current = setTimeout(async () => {
+      setIsLoading(true);
       setSearchParams(
         input.length ? { ...getExistingSearchParams(), title: input } : {},
       );
@@ -101,6 +102,7 @@ export default function Index() {
   const handleStatusChange = (event: CallbackEvent<"s-select">) => {
     const value = event.currentTarget.value;
 
+    setIsLoading(true);
     setSearchParams(
       value === UpsellEnabledFilter.All
         ? {}

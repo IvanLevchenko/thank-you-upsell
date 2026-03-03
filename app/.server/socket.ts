@@ -18,11 +18,11 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  console.log("a user connected " + socket.id);
+  console.log("A client connected: " + socket.id);
 
   socket.on(SocketEvents.SYNC_PRODUCTS, (storeName: string) => {
-    console.log("syncing products for " + storeName);
-    SyncService.syncProducts(socket, storeName, () => {});
+    console.log("Syncing products for store: " + storeName);
+    SyncService.syncProducts(socket, storeName);
   });
 });
 
