@@ -8,14 +8,20 @@ import {
   CalloutBanner,
   Heading,
   Image,
+  InlineStack,
   Layout,
   TextBlock,
   TextContainer,
-  View,
+  Text,
   extend,
 } from "@shopify/post-purchase-ui-extensions";
+import { useEffect, useState } from "react";
 
-const APP_URL = "https://olive-filename-range-llp.trycloudflare.com";
+import PriceHeader from "./components/price-header.jsx";
+import MoneySummary from "./components/money-summary.jsx";
+import MoneyLine from "./components/money-line.jsx";
+
+const APP_URL = "https://quarterly-llc-customers-feel.trycloudflare.com";
 
 extend(
   "Checkout::PostPurchase::ShouldRender",
@@ -64,7 +70,9 @@ render("Checkout::PostPurchase::Render", (props) => (
 
 export function App() {
   const input = useExtensionInput();
-  const { applyChangeset, done, storage } = input;
+  const { applyChangeset, done, storage, calculateChangeset } = input;
+
+  const [calculatedPurchase, setCalculatedPurchase] = useState();
 
   const offers = storage.initialData.data;
 
@@ -89,47 +97,85 @@ export function App() {
     done();
   }
 
+  useEffect(() => {
+    console.log("calculatedPurchase 1", [
+      ...offers.map((offer) => offer.changes),
+    ]);
+    const changeset = calculateChangeset({
+      changes: [...offers.map((offer) => offer.changes)],
+    });
+
+    setCalculatedPurchase(changeset.calculatedPurchase);
+  }, [offers]);
+
+  console.log("calculatedPurchase", calculatedPurchase);
   return (
     <BlockStack spacing="loose">
-      <CalloutBanner title="It's not late to add this product to your order!"></CalloutBanner>
+      {/* <CalloutBanner
+        title="It's not late to add this product to your order!"
+        background="transparent"
+      ></CalloutBanner> */}
       <Layout
         maxInlineSize={0.95}
-
-        // media={[
-        //   { viewportSize: "small", sizes: [1, 30, 1] },
-        //   { viewportSize: "medium", sizes: [300, 30, 0.5] },
-        //   { viewportSize: "large", sizes: [400, 30, 0.33] },
-        // ]}
+        media={[
+          { viewportSize: "small", sizes: [1, 30, 1] },
+          { viewportSize: "medium", sizes: [300, 30, 0.5] },
+          { viewportSize: "large", sizes: [1000, 30, 0.33] },
+        ]}
       >
-        <View />
         <BlockStack spacing="xloose">
-          <TextContainer>
+          {/* <TextContainer>
             <Heading>Post-purchase extension</Heading>
             <TextBlock>
               Here you can cross-sell other products, request a product review
               based on a previous purchase, and much more.
             </TextBlock>
-          </TextContainer>
-          {offers.map((offer) => {
+          </TextContainer> */}
+          {offers.map((offer, index) => {
+            console.log("offer", offer);
             return (
-              <BlockStack>
-                <Image source={offer.productImageURL} />
-                <TextBlock>{offer.productTitle}</TextBlock>
-                <TextBlock>{offer.productDescription}</TextBlock>
-                <TextBlock>{offer.originalPrice}</TextBlock>
-                <TextBlock>{offer.discountedPrice}</TextBlock>
-                <Button
-                  onPress={() =>
-                    acceptOffer(
-                      storage.initialData.token,
-                      storage.initialData.initialPurchase.referenceId,
-                      offer.changes,
-                    )
-                  }
-                >
-                  Accept Offer
-                </Button>
-              </BlockStack>
+              <InlineStack>
+                <Layout maxInlineSize={200}>
+                  <Image source={offer.productImageURL} />
+                </Layout>
+                <BlockStack padding="base">
+                  <Heading level={2}>{offer.productTitle}</Heading>
+                  <PriceHeader
+                    originalPrice={offer.originalPrice}
+                    discountedPrice={offer.discountedPrice}
+                  />
+                  <Text>{offer.productDescription}</Text>
+                  <MoneyLine
+                    label="Original price"
+                    amount={offer.originalPrice}
+                  />
+
+                  <MoneyLine
+                    label="Shipping"
+                    amount={
+                      calculatedPurchase?.updatedLineItems?.[index]?.priceSet
+                        ?.presentmentMoney?.amount
+                    }
+                  />
+                  <MoneySummary amount={offer.discountedPrice} />
+                  <Layout
+                    inlineAlignment="leading"
+                    sizes={["auto", "auto", "fill"]}
+                  >
+                    <Button
+                      onPress={() =>
+                        acceptOffer(
+                          storage.initialData.token,
+                          storage.initialData.initialPurchase.referenceId,
+                          offer.changes,
+                        )
+                      }
+                    >
+                      Accept Offer
+                    </Button>
+                  </Layout>
+                </BlockStack>
+              </InlineStack>
             );
           })}
           {/* <Button
