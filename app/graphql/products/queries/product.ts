@@ -39,6 +39,7 @@ export const productWithMetafield = (
     product(id: $id) {
       id
       title
+      handle
       metafield(namespace: "${namespace}", key: "${key}") {
         value
       }

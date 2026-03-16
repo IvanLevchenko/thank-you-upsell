@@ -47,7 +47,7 @@ export const MetafieldList = ({
       value: JSON.stringify(variantIds),
     };
     try {
-      const response = await Api.metafieldsSet(dto);
+      const response = await Api.products.metafieldsSet(productId, dto);
 
       if (response.success) {
         appBridge.toast.show("Metafields set successfully");
@@ -62,15 +62,11 @@ export const MetafieldList = ({
   };
 
   const handleOpenSearch = async () => {
-    const variantIdsFromMetafield = (await (
-      await fetch(`/api/products/${productId}/upsell-variants`)
-    ).json()) as string[];
-    const variants = variantIdsFromMetafield.length
-      ? ((await (
-          await fetch(`/api/variants?ids=${variantIdsFromMetafield.join(",")}`)
-        ).json()) as ProductVariant[])
-      : [];
+    const upsellVariantsResponse =
+      await Api.products.metafieldVariants(productId);
+    const variants = upsellVariantsResponse.data || ([] as ProductVariant[]);
 
+    console.log("variants", variants);
     const variantsProductsMap: Record<string, string[]> = {};
     variants.forEach((variant) => {
       if (variantsProductsMap[variant.product.id]) {
@@ -84,9 +80,9 @@ export const MetafieldList = ({
       type: "variant",
       multiple: true,
       selectionIds: Object.entries(variantsProductsMap).map(
-        ([productId, variantIds]) => ({
+        ([productId, variants]) => ({
           id: productId,
-          variants: variantIds.map((id) => ({ id })),
+          variants: variants.flatMap((variant) => ({ id: variant })),
         }),
       ),
     });

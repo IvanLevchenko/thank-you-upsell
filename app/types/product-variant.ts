@@ -3,6 +3,7 @@ export type ProductVariant = {
   title: string;
   product: {
     id: string;
+    handle: string;
   };
   price: string;
   media: {

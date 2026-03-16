@@ -115,7 +115,7 @@ function Upsell() {
     appBridge.saveBar.show(SAVE_UPSELL_BAR);
 
     const mode =
-      event.currentTarget.values[0] === UpsellMode.Metafield
+      event.currentTarget.values?.[0] === UpsellMode.Metafield
         ? UpsellMode.Metafield
         : UpsellMode.SelectedCollection;
 
@@ -137,7 +137,7 @@ function Upsell() {
     const variants = metafieldVariants.filter((v) => v.id !== variantToRemove);
     const variantsIds = variants.map((v) => v.id);
 
-    await Api.metafieldsSet({
+    await Api.products.metafieldsSet(id, {
       ownerId: IdConverter.fromNumberToShopifyId(id),
       type: "list.variant_reference",
       namespace: UpsellVariantsMetafield.namespace,
@@ -171,7 +171,7 @@ function Upsell() {
         dto.collectionId = collectionId;
       }
 
-      const { success } = await Api.refreshProductUpsell(id, dto);
+      const { success } = await Api.upsells.refresh(id, dto);
 
       appBridge.toast.show(
         success

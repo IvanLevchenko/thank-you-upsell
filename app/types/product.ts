@@ -1,6 +1,7 @@
 export type Product = {
   id: string;
   title: string;
+  handle: string;
   media: {
     edges: {
       node: {

@@ -5,6 +5,7 @@ export const productVariant = `
       title
       product {
         id
+        handle
       }
       price
       media(first: 1) {

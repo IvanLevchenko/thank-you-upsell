@@ -6,11 +6,11 @@ export const getVariantsFromMetafield = async (
   request: Request,
   metafieldValue: string,
 ): Promise<ProductVariant[]> => {
-  await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
 
   const variantIds = JSON.parse(metafieldValue) as string[];
   const variants = await Promise.all(
-    variantIds.map((id) => getVariant(request, id)),
+    variantIds.map((id) => getVariant(admin.graphql, id)),
   );
 
   return variants;
